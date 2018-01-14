@@ -1,0 +1,515 @@
+Prasanna Velisetti
+========================================================
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+
+library(ggplot2)
+library(knitr)
+library(dplyr)
+```
+
+```{r echo=FALSE, Load_the_Data}
+# Load the Data
+data_wine<-read.csv('wineQualityWhites.csv')
+data_wine<-transform(data_wine, quality = factor(quality, 
+    levels = c("Very Low","Low","Normal","High","Very High"), ordered = TRUE))
+data_wine<-data_wine[,2:13]
+data_wine_scaled<-scale(data_wine[,1:11])
+```
+
+> **White Wine Quality**: The dataset contains physio-chemical properties of 
+4898 different samples of Portuguese "Vinho Verde" wine. The value for quality 
+of wine is based on sensory data (median of at least 3 evaluations made by wine
+experts).The dataset will be used to assess the important physio-chemical 
+properties that determines the quality of wine.There are no missig values
+in the dataset.
+
+
+# Univariate Plots Section
+
+```{r echo=FALSE, message=FALSE, warning=FALSE,Univariate_Plots}
+str(data_wine)
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+summary(data_wine)
+```
+
+
+As seen from the summary, all fields are nummeric. Let us look into the 
+histograms of each of the fields.
+
+```{r  echo=FALSE,  message=FALSE, warning=FALSE}
+qplot(x=fixed.acidity,data=data_wine,geom='histogram',binwidth=0.2)
+summary(data_wine$fixed.acidity)
+```
+
+Fixed acidity distribution appears to be normal with a mean & median around 6.8
+(g/dm^3). 
+
+```{r  echo=FALSE,  message=FALSE, warning=FALSE}
+qplot(x=volatile.acidity,data=data_wine,geom='histogram',
+      binwidth=0.05)
+qplot(x=scale(volatile.acidity),data=data_wine,geom=
+        'histogram',binwidth=0.5)+geom_vline(xintercept=3.5,colour='red')
+
+summary(data_wine$volatile.acidity)
+```
+
+It can be seen that the distribution slightly right skewed. I wonder what 
+happens if we combine both fixed acidity and volatile acidity as in terms of
+wine tasting, they both may not be distinguished.
+
+Volatile acidity is standardized/scaled in the second graph to see if there are any 
+outliers (>3.5)
+
+
+```{r  echo=FALSE,  message=FALSE, warning=FALSE}
+qplot(x=citric.acid,data=data_wine,geom='histogram',binwidth=0.01) # sudden peak at 0.5 
+summary(data_wine$citric.acid)
+```
+
+There is a sudden peak in the citric acid concentration around 0.5 (g / dm^3). 
+
+```{r  echo=FALSE,  message=FALSE, warning=FALSE}
+qplot(x=residual.sugar,data=data_wine,geom='histogram',binwidth=0.3)+
+  scale_x_continuous(trans = "log2") #Bimodal; Right Skewed
+
+summary(data_wine$residual.sugar)
+
+ggplot(data_wine, aes( x = 1, y = residual.sugar ) ) +
+geom_jitter(alpha = 0.1 ) +scale_y_continuous(trans = "log2")
+               
+```
+
+
+Residual sugar distribution is clearly bimodal. One mode occurs 
+around 1.5 and another around 12
+
+One important thing to note here is that the residual sugar gives us a picture 
+of unfermented sugar left in the wine. The bimodal distribution indicates that
+there is decent demand for both sweet wines and dry wines. Some may like to have
+a good taste of wine while some may want to have high alcohol. Here my
+assumption is that alcohol and sugar content might be realted. I would like to 
+see if their relation.
+
+
+
+
+```{r  echo=FALSE,  message=FALSE, warning=FALSE}
+qplot(x=chlorides,data=data_wine,geom='histogram',binwidth=0.005)
+summary(data_wine$chlorides)
+```
+
+Chloride distribution seem to be right skewed with median around 0.043.
+
+```{r  echo=FALSE,  message=FALSE, warning=FALSE}
+qplot(x=free.sulfur.dioxide,data=data_wine,geom='histogram',binwidth=5)
+
+ggplot(data_wine, aes( x = 1, y =free.sulfur.dioxide ) ) + 
+               geom_jitter(alpha = 0.1 ) +
+               geom_boxplot(alpha = 0.2, color = 'red' ) 
+
+summary(data_wine$free.sulfur.dioxide)
+```
+
+
+
+```{r  echo=FALSE,  message=FALSE, warning=FALSE}
+qplot(x=total.sulfur.dioxide,data=data_wine,geom='histogram',binwidth=10)
+ggplot(data_wine, aes( x = 1, y =total.sulfur.dioxide ) ) + 
+               geom_jitter(alpha = 0.1 ) +
+               geom_boxplot(alpha = 0.2, color = 'red' ) 
+summary(data_wine$total.sulfur.dioxide)
+```
+
+Both total & free sulfur dioxide distributions are slight right skewed. 
+There are some outliers as seen from the box plots. Total sulfur dioxide 
+includes free sulfur dioxide as well. Would like to see the relation of 
+bound sulfur dioxide which is the difference between total and free sulfur
+dioxide and the quality of wines along with the free and total sulfur dioxide.
+
+
+```{r  echo=FALSE,  message=FALSE, warning=FALSE}
+qplot(x=density,data=data_wine,geom='histogram',binwidth=0.001)
+summary(data_wine$density)
+```
+
+Density ranges from 0.9871 (g / cm^3) to 1.039 (g / cm^3). We see that there 
+is not much variation in the density. As we have the different chemical content 
+densities given in the dataset, it is most likely that density is highly 
+correlated with other features. So I want to explore this further in bi-variate
+analysis.
+
+```{r  echo=FALSE,  message=FALSE, warning=FALSE}
+qplot(x=pH,data=data_wine,geom='histogram',binwidth=0.05)
+
+ggplot(data_wine, aes( x = 1, y =pH ) ) + 
+               geom_jitter(alpha = 0.1 ) +
+               geom_boxplot(alpha = 0.2, color = 'red' ) 
+
+
+summary(data_wine$pH)
+```
+
+
+```{r  echo=FALSE,  message=FALSE, warning=FALSE}
+qplot(x=alcohol,data=data_wine,geom='histogram',binwidth=0.5)
+summary(data_wine$alcohol)
+```
+
+The minimum alcohol content is around 8% and maximum is  around 14%. The 
+distribution is right skewed with median = 10.4%
+
+
+
+```{r  echo=FALSE,  message=FALSE, warning=FALSE}
+qplot(x=quality,data=data_wine) 
+summary(data_wine$quality)
+```
+
+We see that distribution of wines is highly biased towards normal quality 
+wines and there are very rare (5) Very high quality wines and no low quality 
+wines. Also around 95% of the data is either Normal or High Quality. It is a 
+good idea to remove the Very HIgh and Very Low quality wines from the analysis
+to determine which affects the wine quality as the number of datapoints are 
+very less.
+
+
+
+
+```{r echo=FALSE,  tidy=FALSE,message=FALSE, warning=FALSE}
+
+data_wine$Bound_sulfur_dioxide=(data_wine$total.sulfur.dioxide 
+                                -data_wine$free.sulfur.dioxide)
+
+data_wine$ratio_alcohol_sugar=data_wine$alcohol/data_wine$residual.sugar
+data_wine$diff_sugar_citicacid=(data_wine$residual.sugar-
+                                  data_wine$citric.acid
+                                -data_wine$fixed.acidity)/data_wine$alcohol
+data_wine_filtered<-subset(data_wine,quality !='Very High')
+
+```
+
+
+# Univariate Analysis
+
+### What is the structure of your dataset?
+There are 4898 observations with 11 different fields excluding quality field. 
+Every field is a continous variable. 
+
+### What is/are the main feature(s) of interest in your dataset?
+
+No judgement has been taken at this stage
+
+### Did you create any new variables from existing variables in the dataset?
+1) Bound_sulfur_dioxide which is difference between total sulfur dioxide and 
+   the free sulfur dioxide
+2) Quality is changed into categorical variable with Very Low (1,2), Low (3,4), 
+   Normal (5,6), High (7,8) and Very High (9,10) categories
+3) Free sulfur dioxide to Total Sulfur doxide ratio
+4) Ratio of alcohol to residual sugar
+
+### Of the features you investigated, were there any unusual distributions? 
+
+1) There is a sudden peak in citric acid concentration aroud 0.5 (g / dm^3)
+2) Bimodal distribution for residual sugar
+
+# Bivariate Plots Section
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Bivariate_Plots}
+M<-cor(data_wine[,-12])
+library('corrplot') #package corrplot
+corrplot(M, method = "circle") #plot matrix
+```
+
+
+Density is largely correlated (>0.8) to residual.sugar and alcohol 
+percentage(<-0.8) 
+As density is combined concentrations of its contents, this behaviour 
+is expected. Density field can thus be ignored.
+
+
+```{r  echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(data_wine, 
+       aes(x=residual.sugar, 
+           y=alcohol)) +  geom_point(
+             alpha = .2, size = 2,position = 'jitter') +scale_x_continuous(
+               limits = c(0, 20))
+
+summary(lm(formula = alcohol ~ residual.sugar, data = 
+             subset(data_wine, residual.sugar <=  
+                      quantile(data_wine$residual.sugar, 0.999))))
+
+```
+
+As discuseed earlier, there is expected to be relation between Alcohol 
+percentage and residual sugar content. It was expected that alcohol and residual
+sugar would have a linear relationship given a fixed amount initial sugar 
+content but looking at the scatter plot and the
+R2 value of the linear regression, the linear relationship is not apparent.This 
+makes me think that the intial sugar content might not be the same for the wines
+as it depends on the type of grapes. 
+
+The variation of alcohol content decreases with increase in 
+residual sugar content. This is because there should be limit on the intial 
+sugar content present before fermentation.
+
+
+
+```{r echo=FALSE,message=FALSE, warning=FALSE}
+
+qplot(x=quality, y=alcohol, data=data_wine_filtered, geom='boxplot')
+qplot(x=quality, y=residual.sugar, data=data_wine_filtered, 
+      geom='boxplot')+scale_y_continuous(lim=c(0,40))
+
+```
+
+Alcohol concentration seems to be a good indicator of wine quality as there
+are considerable difference in the medians between Normal and High quality wines
+
+Higher and lower quality wines have lower residual sugar content median
+compared to that of normal wines. 
+
+It is observed that both Very High and Low quality wines can have lower residual
+sugars. Thus Residual sugar might not be good indicator of quality.It would be 
+interesting to see if residual sugar content combined with citric acid is a good
+feature for quality.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+qplot(x=quality, y =fixed.acidity, data=data_wine_filtered, 
+      geom='boxplot')  
+qplot(x=quality, y =citric.acid, data=data_wine_filtered, 
+      geom='boxplot')+scale_y_continuous(lim=c(0.1,0.5))
+
+qplot(x=quality, y =volatile.acidity, data=data_wine_filtered, 
+      geom='boxplot') 
+
+```
+
+Fixed acidity and Citric acid concentration on the other hand seems to be not
+much distinguishing the quality of wines.But we can see that the variance of
+citric acid decreases with increase in quality.
+
+On the other hand volatile acidity seems to be a good feature.
+
+
+```{r echo=FALSE,message=FALSE, warning=FALSE}
+qplot(x=quality, y =sulphates, data=data_wine_filtered, geom='boxplot')
+qplot(x=quality, y =free.sulfur.dioxide, data=data_wine_filtered, 
+      geom='boxplot')
+qplot(x=quality, y =total.sulfur.dioxide, data=data_wine_filtered, 
+      geom='boxplot')
+qplot(x=quality, y =free.sulfur.dioxide/total.sulfur.dioxide, 
+      data=data_wine_filtered, geom='boxplot')
+
+
+
+```
+
+
+Free sulfur dioxide seems to distinguishing among different 
+qualities more than the total sulfur dioxide. We can further analyse to see if
+the ratio of free to total sulfur dioxide is a better feature for determining 
+quality.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+qplot(x=quality, y =chlorides, data=data_wine_filtered, 
+      geom='boxplot')+scale_y_continuous(lim=c(0,0.08))
+
+
+```
+
+
+There are lot of outliers in Normal quaity wines in terms of chloride 
+concentation. If we remove some of the outliers, we can see that with the 
+chloride concentration quality decreases. This is expected as the wine starts
+to taste salty.
+
+
+
+# Bivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the investigation How did the feature(s) of interest vary with other features in the dataset?
+
+1) Alcohol concentration seems to be a good indicator of wine quality as 
+there are considerable difference in the medians among Normal, High and 
+very high quality wines. With the increase in Alcohol concentration, 
+the quality of wine increases
+
+2) As Free sulfur dioxide increases, the quality is seen to be increasing
+
+3) Chlorides seem to be good indicators of wine quality.
+
+4) Residual sugar did not show any trend in the quality
+
+
+### Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
+
+1) Checking the relation between residual sugar and alcohol concentrations.
+From the scatter plot, it is observed that higher the residual sugar 
+concentration, the narrower the alcohol concentration range becomes. 
+With the process of fermentation, natural sugar present in the grapes
+is converted to alcohol. Given that there should be a limit on how much 
+initial sugar content grapes can contain, depending on how long the 
+fermentation process goes, more and more sugar is converted into alcohol. 
+So with a lesser residual sugar concentration, it is quite possible to have 
+different levels of alcohol but with higher residual sugar content there is 
+less possibility to have more alcohol content.
+
+2)Density is strongly related to residual sugar and alcohol content. 
+Thus Density can be removed from the list of features as there will be 
+redundant information.
+
+### What was the strongest relationship you found?
+Density with residual sugar content and alcohol
+
+
+
+# Multivariate Plots Section
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Multivariate_Plots}
+qplot(x=quality, y =free.sulfur.dioxide/total.sulfur.dioxide, 
+      data=data_wine_filtered, geom='boxplot')
+```
+
+Free to total sulfur dioxide ratio should give us an idea on how much 
+proportion of added sulfur dioxide is actually avaiable for protection against
+microbes. The trend for quality is as expected and more differentiating than
+if we take free sulfur dioxide itself.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(data_wine_filtered, aes(x=pH, 
+                      y=free.sulfur.dioxide/total.sulfur.dioxide,
+                      colour=quality))+  geom_point(shape=1)+geom_point(
+                        )+geom_smooth(method = "lm",se = FALSE,
+                              size=2)+scale_color_brewer()
+```
+As the amount of free sulfur dioxide for a given total sulfur dioxide
+may depend on the pH of the solution, it is plotted to check if there is any
+relation. While there are some trend seen for high quality wins, it is not 
+so prominent.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(data_wine_filtered, aes(y=fixed.acidity, 
+                      x=residual.sugar,colour=quality)) +  geom_point(
+                      ) +geom_point(
+                            )+geom_smooth(
+                              method = "lm",
+                              se = FALSE,
+                              size=2)+scale_color_brewer(
+                                )+scale_x_continuous(lim=c(0,20))
+
+
+```
+
+As acidity and sweetness counteract each other, it is interesting to know their
+relationship.
+
+We see that with increase in fixed acidity, the residual sugar content 
+increases.
+
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the investigation. Were there features that strengthened each other in terms of looking at your feature(s) of interest?
+1)The ratio of free sulfur dioxide to total sulfur dioxide seems to be good
+feature that can differentiate well between diffetent qualities of wine.
+
+2)We saw that with increase in fixed acidity, the residual sugar content 
+increases. This shows that grapes are picked at a particular time during the
+ripening phase as there seems to be an importance to balance out acidity and
+residual sugar
+
+
+### Were there any interesting or surprising interactions between features?
+No.
+
+
+------
+
+# Final Plots and Summary
+
+
+### Plot One
+```{r echo=FALSE,message=FALSE, warning=FALSE, Plot_One}
+ggplot(data_wine, 
+       aes(x=residual.sugar, 
+           y=alcohol)) +  geom_point(
+             alpha = .2, size = 2,position = 'jitter') +scale_x_continuous(
+               limits = c(0, 20))+labs(
+                              x="Residual Sugar (g/dm3)",y
+                              ="Alcohol(% by volume)",title='
+                              % of Alcohol by Residual Sugar') 
+```
+
+### Description One
+It is interesting to notice how variation of alcohol percentage decreases with
+residual sugar. Even though there is not much linear relationship seen between 
+alcohol and residual sugar, the extent to which alcohol percentage can vary
+among different wines and the residual sugar content can be related.
+
+
+
+### Plot Two
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_Two}
+qplot(x=quality, y =free.sulfur.dioxide/total.sulfur.dioxide, 
+      data=data_wine_filtered, geom='boxplot')+labs(
+                              x="Quality",y
+                              ="Free sulfur Dioxide/Total sulfur dioxide",
+                                title='
+                              Ratio of sulfur dioxids by Quality') 
+```
+
+### Description Two
+
+Ratio of sulfur dioxides is a good indicator for Quality of wines as it shows
+how efficiently the sulfur dioxide is used for protection against microbes
+
+### Plot Three
+```{r echo=FALSE, message=FALSE, warning=FALSE,Plot_Three}
+qplot(x=quality, y =chlorides,
+      data=data_wine_filtered, geom='boxplot')+ scale_y_continuous(
+        lim=c(0,0.08))+  labs(
+        y="Chlorides",x="Quality",
+        title='
+                                        Chlorides concentration by Quality')
+
+```
+
+### Description Three
+
+We saw that chlorides concentration is a good feature for 
+identifying wine quality.
+
+# Reflection
+
+Most of chemical properties did not correlate with each other. The dataset is 
+biased and has very less numner of very high quality wines.A lot of background 
+study on different chemical reactions had to be studied to understand the 
+realtion between different parameters. While there was background study needed, 
+most of relations are easily understandable. It was suprising that there are
+both low quality and very high quality wines with high concentration of residual
+sugar. 
+
+While different chemical properties of wines are given, there was no information
+on the conditions in which the grapes were grown.
+
+There were so many outliers observed in various parts of the analysis and the 
+reasons for such anomalies could not be explained based only on the information
+given.
+
+More data needs to be collected corresponding to the low and very high quality 
+winesto make the dataset unbiased towards different quality of wines
+which can then be used for predictive models to predict quality of wine 
+given a set of physio-chemical properties.
+
+
+
+
+
